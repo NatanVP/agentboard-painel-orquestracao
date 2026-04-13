@@ -1,329 +1,130 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AgentBoard — Painel de Orquestração</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- Notificações Toast -->
-  <div id="toast-container"></div>
-
-  <!-- Tela de Autenticação -->
-  <div id="tela-auth">
-    <div class="auth-wrapper">
-      <div class="auth-logo">
-        <span class="logo-icon">◈</span>
+  <div id="tela-login">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="logo-icon">⬡</div>
         <h1>AgentBoard</h1>
         <p>Painel de Orquestração de Agentes</p>
       </div>
-
-      <!-- Formulário de Login -->
-      <div id="form-login" class="auth-card">
-        <h2>Entrar</h2>
-        <form onsubmit="login(event)">
-          <div class="campo">
-            <label for="login-email">E-mail</label>
-            <input type="email" id="login-email" placeholder="seu@email.com" required />
-          </div>
-          <div class="campo">
-            <label for="login-senha">Senha</label>
-            <input type="password" id="login-senha" placeholder="••••••••" required />
-          </div>
-          <button type="submit" class="btn btn-primario btn-bloco">Entrar</button>
-        </form>
-        <p class="auth-switch">Não tem conta? <a href="#" onclick="alternarFormAuth('registro')">Registrar-se</a></p>
-      </div>
-
-      <!-- Formulário de Registro -->
-      <div id="form-registro" class="auth-card oculto">
-        <h2>Criar Conta</h2>
-        <form onsubmit="registrar(event)">
-          <div class="campo">
-            <label for="reg-nome">Nome</label>
-            <input type="text" id="reg-nome" placeholder="Seu nome completo" required />
-          </div>
-          <div class="campo">
-            <label for="reg-email">E-mail</label>
-            <input type="email" id="reg-email" placeholder="seu@email.com" required />
-          </div>
-          <div class="campo">
-            <label for="reg-senha">Senha</label>
-            <input type="password" id="reg-senha" placeholder="Mínimo 6 caracteres" required minlength="6" />
-          </div>
-          <button type="submit" class="btn btn-primario btn-bloco">Criar Conta</button>
-        </form>
-        <p class="auth-switch">Já tem conta? <a href="#" onclick="alternarFormAuth('login')">Entrar</a></p>
-      </div>
+      <form id="form-login" onsubmit="fazerLogin(event)">
+        <div class="campo">
+          <label>Usuário</label>
+          <input type="text" id="campo-usuario" value="admin" required>
+        </div>
+        <div class="campo">
+          <label>Senha</label>
+          <input type="password" id="campo-senha" value="admin123" required>
+        </div>
+        <div id="erro-login" class="erro-msg" style="display:none"></div>
+        <button type="submit" id="btn-login" class="btn-primario">Entrar</button>
+      </form>
     </div>
   </div>
 
-  <!-- Tela Principal da Aplicação -->
-  <div id="tela-app" class="oculto">
-
-    <!-- Sidebar -->
-    <nav id="sidebar">
+  <div id="painel-principal" style="display:none">
+    <aside class="sidebar">
       <div class="sidebar-logo">
-        <span class="logo-icon">◈</span>
+        <span class="logo-icon-sm">⬡</span>
         <span>AgentBoard</span>
       </div>
-
-      <ul class="sidebar-menu">
-        <li>
-          <a href="#" class="menu-item ativo" onclick="mostrarSecao('dashboard', this)">
-            <span class="menu-icone">▦</span>
-            <span>Dashboard</span>
-          </a>
-        </li>
-        <li>
-          <a href="#" class="menu-item" onclick="mostrarSecao('agentes', this)">
-            <span class="menu-icone">◉</span>
-            <span>Agentes</span>
-          </a>
-        </li>
-        <li>
-          <a href="#" class="menu-item" onclick="mostrarSecao('tarefas', this)">
-            <span class="menu-icone">☰</span>
-            <span>Tarefas</span>
-          </a>
-        </li>
-        <li>
-          <a href="#" class="menu-item" onclick="mostrarSecao('logs', this)">
-            <span class="menu-icone">≡</span>
-            <span>Logs em Tempo Real</span>
-          </a>
-        </li>
-      </ul>
-
-      <div class="sidebar-rodape">
-        <div class="sse-status" id="sse-status">
-          <span class="sse-ponto desconectado"></span>
-          <span id="sse-texto">Desconectado</span>
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item ativo" onclick="navegarPara('dashboard',this)"><span class="nav-icon">▦</span> Dashboard</a>
+        <a href="#" class="nav-item" onclick="navegarPara('agentes',this)"><span class="nav-icon">◈</span> Agentes</a>
+        <a href="#" class="nav-item" onclick="navegarPara('tarefas',this)"><span class="nav-icon">◇</span> Tarefas</a>
+        <a href="#" class="nav-item" onclick="navegarPara('logs',this)"><span class="nav-icon">≡</span> Logs</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sse-status">
+          <span class="sse-dot" id="sse-dot"></span>
+          <span id="sse-texto">Conectando...</span>
         </div>
-        <button class="btn btn-outline btn-sm" onclick="logout()">Sair</button>
+        <button class="btn-sair" onclick="sair()">Sair</button>
       </div>
-    </nav>
+    </aside>
 
-    <!-- Conteúdo Principal -->
-    <main id="conteudo">
-
-      <!-- Seção Dashboard -->
-      <section id="secao-dashboard" class="secao">
-        <div class="secao-cabecalho">
+    <main class="conteudo">
+      <section id="pagina-dashboard" class="pagina ativa">
+        <div class="cabecalho-pagina">
           <h2>Dashboard</h2>
-          <button class="btn btn-outline btn-sm" onclick="carregarDashboard()">↻ Atualizar</button>
+          <span id="hora-atual" style="color:var(--cor-texto-dim);font-size:13px"></span>
         </div>
-
-        <div class="cards-grid">
-          <div class="card">
-            <div class="card-icone card-icone-azul">◉</div>
-            <div class="card-info">
-              <span class="card-label">Total de Agentes</span>
-              <span class="card-valor" id="dash-total-agentes">—</span>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-icone card-icone-amarelo">⏳</div>
-            <div class="card-info">
-              <span class="card-label">Tarefas Pendentes</span>
-              <span class="card-valor" id="dash-tarefas-pendentes">—</span>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-icone card-icone-verde">✓</div>
-            <div class="card-info">
-              <span class="card-label">Tarefas Concluídas</span>
-              <span class="card-valor" id="dash-tarefas-concluidas">—</span>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-icone card-icone-roxo">%</div>
-            <div class="card-info">
-              <span class="card-label">Taxa de Sucesso</span>
-              <span class="card-valor" id="dash-taxa-sucesso">—</span>
-            </div>
-          </div>
+        <div class="cards-resumo">
+          <div class="card-resumo"><div class="card-numero" id="total-agentes">—</div><div class="card-label">Agentes</div></div>
+          <div class="card-resumo verde"><div class="card-numero" id="agentes-ativos">—</div><div class="card-label">Em Execução</div></div>
+          <div class="card-resumo azul"><div class="card-numero" id="total-tarefas">—</div><div class="card-label">Tarefas</div></div>
+          <div class="card-resumo laranja"><div class="card-numero" id="total-logs">—</div><div class="card-label">Logs</div></div>
         </div>
-
-        <div class="secao-sub">
-          <h3>Atividade Recente</h3>
-          <div id="dash-atividade" class="painel-atividade">
-            <p class="texto-vazio">Carregando atividade...</p>
+        <div class="painel-duplo">
+          <div class="painel-secao">
+            <h3>Agentes Ativos</h3>
+            <div id="lista-agentes-dash"></div>
+          </div>
+          <div class="painel-secao">
+            <h3>Logs em Tempo Real</h3>
+            <div id="feed-logs" class="feed-logs"></div>
           </div>
         </div>
       </section>
 
-      <!-- Seção Agentes -->
-      <section id="secao-agentes" class="secao oculto">
-        <div class="secao-cabecalho">
+      <section id="pagina-agentes" class="pagina">
+        <div class="cabecalho-pagina">
           <h2>Agentes</h2>
-          <button class="btn btn-primario" onclick="abrirModalAgente()">+ Novo Agente</button>
+          <button class="btn-primario" onclick="abrirModalAgente()">+ Novo Agente</button>
         </div>
-
-        <div class="tabela-container">
-          <table class="tabela" id="tabela-agentes">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Tipo</th>
-                <th>Status</th>
-                <th>Tarefas</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody id="corpo-tabela-agentes">
-              <tr>
-                <td colspan="5" class="texto-vazio">Carregando agentes...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <div id="tabela-agentes"></div>
       </section>
 
-      <!-- Seção Tarefas -->
-      <section id="secao-tarefas" class="secao oculto">
-        <div class="secao-cabecalho">
+      <section id="pagina-tarefas" class="pagina">
+        <div class="cabecalho-pagina">
           <h2>Tarefas</h2>
-          <button class="btn btn-primario" onclick="abrirModalTarefa()">+ Nova Tarefa</button>
+          <button class="btn-primario" onclick="abrirModalTarefa()">+ Nova Tarefa</button>
         </div>
-
-        <div class="tabela-container">
-          <table class="tabela" id="tabela-tarefas">
-            <thead>
-              <tr>
-                <th>Título</th>
-                <th>Agente</th>
-                <th>Prioridade</th>
-                <th>Status</th>
-                <th>Criada em</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody id="corpo-tabela-tarefas">
-              <tr>
-                <td colspan="6" class="texto-vazio">Carregando tarefas...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <div id="tabela-tarefas"></div>
       </section>
 
-      <!-- Seção Logs em Tempo Real -->
-      <section id="secao-logs" class="secao oculto">
-        <div class="secao-cabecalho">
-          <h2>Logs em Tempo Real</h2>
-          <div class="cabecalho-acoes">
-            <button class="btn btn-outline btn-sm" onclick="limparLogs()">Limpar</button>
-          </div>
+      <section id="pagina-logs" class="pagina">
+        <div class="cabecalho-pagina">
+          <h2>Logs do Sistema</h2>
         </div>
-
-        <div class="painel-logs" id="painel-logs">
-          <div class="log-vazio">Aguardando eventos SSE...</div>
-        </div>
+        <div id="tabela-logs"></div>
       </section>
-
     </main>
   </div>
 
-  <!-- Modal: Criar/Editar Agente -->
-  <div id="modal-agente" class="modal-overlay oculto" onclick="fecharModalSeOverlay(event, 'modal-agente')">
-    <div class="modal">
-      <div class="modal-cabecalho">
-        <h3 id="modal-agente-titulo">Novo Agente</h3>
-        <button class="modal-fechar" onclick="fecharModal('modal-agente')">✕</button>
-      </div>
-      <div class="modal-corpo">
-        <form id="form-agente" onsubmit="submeterFormAgente(event)">
-          <input type="hidden" id="agente-id" value="" />
-          <div class="campo">
-            <label for="agente-nome">Nome do Agente</label>
-            <input type="text" id="agente-nome" placeholder="Ex: Agente de Análise" required />
-          </div>
-          <div class="campo">
-            <label for="agente-tipo">Tipo</label>
-            <select id="agente-tipo" required>
-              <option value="">Selecione o tipo...</option>
-              <option value="analisador">Analisador</option>
-              <option value="executor">Executor</option>
-              <option value="monitor">Monitor</option>
-              <option value="gerador">Gerador</option>
-            </select>
-          </div>
-          <div class="campo">
-            <label for="agente-descricao">Descrição</label>
-            <textarea id="agente-descricao" rows="3" placeholder="Descreva a função deste agente..."></textarea>
-          </div>
-          <div class="campo">
-            <label for="agente-status">Status</label>
-            <select id="agente-status">
-              <option value="ativo">Ativo</option>
-              <option value="inativo">Inativo</option>
-            </select>
-          </div>
-          <div class="modal-rodape">
-            <button type="button" class="btn btn-outline" onclick="fecharModal('modal-agente')">Cancelar</button>
-            <button type="submit" class="btn btn-primario">Salvar</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Criar Tarefa -->
-  <div id="modal-tarefa" class="modal-overlay oculto" onclick="fecharModalSeOverlay(event, 'modal-tarefa')">
-    <div class="modal">
-      <div class="modal-cabecalho">
-        <h3>Nova Tarefa</h3>
-        <button class="modal-fechar" onclick="fecharModal('modal-tarefa')">✕</button>
-      </div>
-      <div class="modal-corpo">
-        <form id="form-tarefa" onsubmit="submeterFormTarefa(event)">
-          <div class="campo">
-            <label for="tarefa-agente">Agente</label>
-            <select id="tarefa-agente" required>
-              <option value="">Selecione o agente...</option>
-            </select>
-          </div>
-          <div class="campo">
-            <label for="tarefa-titulo">Título</label>
-            <input type="text" id="tarefa-titulo" placeholder="Descrição da tarefa" required />
-          </div>
-          <div class="campo">
-            <label for="tarefa-prioridade">Prioridade</label>
-            <select id="tarefa-prioridade">
-              <option value="baixa">Baixa</option>
-              <option value="media" selected>Média</option>
-              <option value="alta">Alta</option>
-              <option value="critica">Crítica</option>
-            </select>
-          </div>
-          <div class="campo">
-            <label for="tarefa-payload">Payload (JSON opcional)</label>
-            <textarea id="tarefa-payload" rows="3" placeholder='{"chave": "valor"}'></textarea>
-          </div>
-          <div class="modal-rodape">
-            <button type="button" class="btn btn-outline" onclick="fecharModal('modal-tarefa')">Cancelar</button>
-            <button type="submit" class="btn btn-primario">Criar Tarefa</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Logs da Tarefa -->
-  <div id="modal-logs-tarefa" class="modal-overlay oculto" onclick="fecharModalSeOverlay(event, 'modal-logs-tarefa')">
-    <div class="modal modal-largo">
-      <div class="modal-cabecalho">
-        <h3>Logs da Tarefa</h3>
-        <button class="modal-fechar" onclick="fecharModal('modal-logs-tarefa')">✕</button>
-      </div>
-      <div class="modal-corpo">
-        <div class="painel-logs" id="modal-painel-logs" style="height: 300px;">
-          <div class="log-vazio">Carregando logs...</div>
+  <div id="modal-agente" class="modal" style="display:none">
+    <div class="modal-box">
+      <h3>Novo Agente</h3>
+      <form onsubmit="criarAgente(event)">
+        <div class="campo"><label>Nome</label><input type="text" id="inp-nome-agente" required></div>
+        <div class="campo"><label>Descrição</label><input type="text" id="inp-desc-agente"></div>
+        <div class="modal-acoes">
+          <button type="button" class="btn-secundario" onclick="fecharModal('modal-agente')">Cancelar</button>
+          <button type="submit" class="btn-primario">Criar</button>
         </div>
-      </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="modal-tarefa" class="modal" style="display:none">
+    <div class="modal-box">
+      <h3>Nova Tarefa</h3>
+      <form onsubmit="criarTarefa(event)">
+        <div class="campo"><label>Agente</label><select id="sel-agente-tarefa" required></select></div>
+        <div class="campo"><label>Título</label><input type="text" id="inp-titulo-tarefa" required></div>
+        <div class="modal-acoes">
+          <button type="button" class="btn-secundario" onclick="fecharModal('modal-tarefa')">Cancelar</button>
+          <button type="submit" class="btn-primario">Criar</button>
+        </div>
+      </form>
     </div>
   </div>
 

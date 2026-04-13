@@ -1,126 +1,68 @@
-// Módulo de conexão e inicialização do banco de dados SQLite
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-const CAMINHO_BANCO = path.join(__dirname, 'agentboard.db');
+const dbPath = process.env.DB_PATH || path.join(__dirname, 'agentboard.db');
 
-// Instância única do banco de dados
-const db = new sqlite3.Database(CAMINHO_BANCO, (err) => {
+const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
-    console.error('Erro ao conectar ao banco de dados:', err.message);
+    console.error('Erro ao conectar ao banco:', err.message);
     process.exit(1);
   }
-  console.log('Conectado ao banco de dados SQLite.');
 });
 
-// Inicializa o esquema do banco de dados
-function inicializarBanco() {
-  return new Promise((resolve, reject) => {
-    db.serialize(() => {
-      // Habilita chaves estrangeiras
-      db.run('PRAGMA foreign_keys = ON');
+db.serialize(() => {
+  db.run('PRAGMA foreign_keys = ON');
 
-      // Tabela de usuários
-      db.run(`
-        CREATE TABLE IF NOT EXISTS usuarios (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          nome TEXT NOT NULL,
-          email TEXT NOT NULL UNIQUE,
-          senha_hash TEXT NOT NULL,
-          criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
+  db.run(`CREATE TABLE IF NOT EXISTS agents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT DEFAULT '',
+    status TEXT DEFAULT 'idle',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
 
-      // Tabela de agentes
-      db.run(`
-        CREATE TABLE IF NOT EXISTS agentes (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          usuario_id INTEGER NOT NULL,
-          nome TEXT NOT NULL,
-          tipo TEXT NOT NULL,
-          descricao TEXT,
-          configuracao TEXT DEFAULT '{}',
-          status TEXT DEFAULT 'inativo',
-          criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
-          atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
-        )
-      `);
+  db.run(`CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    agent_id INTEGER REFERENCES agents(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
+    output TEXT DEFAULT '',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
 
-      // Tabela de tarefas
-      db.run(`
-        CREATE TABLE IF NOT EXISTS tarefas (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          agente_id INTEGER NOT NULL,
-          titulo TEXT NOT NULL,
-          payload TEXT DEFAULT '{}',
-          status TEXT DEFAULT 'pendente',
-          prioridade INTEGER DEFAULT 1,
-          tentativas INTEGER DEFAULT 0,
-          resultado TEXT,
-          erro TEXT,
-          criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
-          iniciado_em DATETIME,
-          concluido_em DATETIME,
-          FOREIGN KEY (agente_id) REFERENCES agentes(id) ON DELETE CASCADE
-        )
-      `);
+  db.run(`CREATE TABLE IF NOT EXISTS logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
+    message TEXT NOT NULL,
+    level TEXT DEFAULT 'info',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
 
-      // Tabela de logs de execução
-      db.run(`
-        CREATE TABLE IF NOT EXISTS logs_execucao (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          tarefa_id INTEGER NOT NULL,
-          nivel TEXT NOT NULL DEFAULT 'info',
-          mensagem TEXT NOT NULL,
-          criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (tarefa_id) REFERENCES tarefas(id) ON DELETE CASCADE
-        )
-      `, (err) => {
-        if (err) {
-          console.error('Erro ao criar tabelas:', err.message);
-          reject(err);
-        } else {
-          console.log('Esquema do banco de dados inicializado com sucesso.');
-          resolve();
-        }
-      });
-    });
+  // Dados iniciais
+  db.get('SELECT COUNT(*) as n FROM agents', (err, row) => {
+    if (!err && row && row.n === 0) {
+      db.run(`INSERT INTO agents (name, description, status) VALUES
+        ('Agente Alpha', 'Análise de repositórios', 'idle'),
+        ('Agente Beta', 'Pipelines de integração', 'running'),
+        ('Agente Gamma', 'Qualidade de código', 'idle')`);
+      db.run(`INSERT INTO tasks (agent_id, title, status, output) VALUES
+        (1, 'Analisar repositório principal', 'completed', 'Análise concluída: 142 arquivos, 87% cobertura'),
+        (2, 'Executar pipeline de staging', 'running', 'Deploy em andamento...'),
+        (2, 'Validar testes de integração', 'pending', ''),
+        (3, 'Revisar padrões de código', 'completed', '3 avisos encontrados')`);
+      db.run(`INSERT INTO logs (task_id, message, level) VALUES
+        (1, 'Iniciando análise do repositório', 'info'),
+        (1, 'Processando 142 arquivos...', 'info'),
+        (1, 'Cobertura de testes: 87%', 'info'),
+        (1, 'Análise concluída com sucesso', 'success'),
+        (2, 'Conectando ao servidor de staging', 'info'),
+        (2, 'Build iniciado', 'info'),
+        (2, 'Deploy em andamento...', 'warn'),
+        (4, 'Verificando padrões de código', 'info'),
+        (4, 'Aviso: variável não utilizada em utils.js:42', 'warn'),
+        (4, 'Revisão concluída', 'success')`);
+    }
   });
-}
+});
 
-// Utilitários para promisificar operações do sqlite3
-function executar(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, function (err) {
-      if (err) reject(err);
-      else resolve({ id: this.lastID, alteracoes: this.changes });
-    });
-  });
-}
-
-function buscarUm(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row) => {
-      if (err) reject(err);
-      else resolve(row);
-    });
-  });
-}
-
-function buscarTodos(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows);
-    });
-  });
-}
-
-module.exports = {
-  db,
-  inicializarBanco,
-  executar,
-  buscarUm,
-  buscarTodos
-};
+module.exports = db;

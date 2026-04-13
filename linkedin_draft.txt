@@ -1,0 +1,13 @@
+Finalizei um projeto que estava na minha lista há um tempo: o AgentBoard, um painel local para orquestração de agentes de código.
+
+A ideia surgiu enquanto explorava arquiteturas de filas e queria colocar em prática SSE (Server-Sent Events) de verdade — não só o básico, mas com autenticação JWT e persistência via SQLite.
+
+O stack é propositalmente enxuto: Node.js, Express, SQLite e frontend em HTML/CSS/JS vanilla, sem frameworks. Queria entender cada camada sem abstrações no caminho.
+
+O resultado foi um painel funcional com fila de tarefas, streaming de status em tempo real e controle de acesso por token.
+
+Código aberto, sem dependências pesadas. Se você também está estudando SSE ou arquitetura de filas no Node, pode ser um bom ponto de partida.
+
+https://github.com/NatanVP/agentboard-painel-orquestracao
+
+#nodejs #backend #opensource
